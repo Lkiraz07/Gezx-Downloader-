@@ -1,0 +1,10 @@
+Environments
+​.env
+venv/
+pycache/
+*.pyc
+​Database and Downloads
+​downloads/
+cache/
+*.db
+*.sqlite
