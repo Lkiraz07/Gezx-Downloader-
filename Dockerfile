@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install FFmpeg and required dependencies
+# Install system dependencies (ffmpeg and git are required for yt-dlp & metadata)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     git \
@@ -8,12 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python requirements
+# Copy dependency requirements first to leverage Docker layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy bot source code
+# Copy all application files
 COPY . .
 
-# Run the bot
+# Expose default port for Render web service health check
+EXPOSE 8080
+
+# Run the application entry point
 CMD ["python", "bot.py"]
