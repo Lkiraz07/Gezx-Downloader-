@@ -212,26 +212,37 @@ async def health_check(request):
     return web.Response(text="Bot web server running ok.")
 
 
+from pyrogram.errors import FloodWait
+
 async def main():
     await db.init_db()
     await admin.register_admin_handlers(app)
     logger.info("Starting Pyrogram client...")
-    await app.start()
+    
+    # Catch FloodWait so the application doesn't exit with status 1
+    while True:
+        try:
+            await app.start()
+            break
+        except FloodWait as e:
+            logger.warning(f"⏳ Telegram FloodWait active! Sleeping for {e.value} seconds...")
+            await asyncio.sleep(e.value + 2)
+        except Exception as e:
+            logger.error(f"Failed to start Pyrogram client: {e}")
+            return
 
     me = await app.get_me()
     logger.info("==========================================")
     logger.info(f"✅ BOT CONNECTED SUCCESSFULLY: @{me.username} (ID: {me.id})")
     logger.info("==========================================")
 
+    # Web server startup
     server = web.Server(health_check)
     runner = web.ServerRunner(server)
     await runner.setup()
     port = int(os.getenv("PORT", "8080"))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    logger.info(f"Health-check HTTP server listening on port {port}")
 
     await asyncio.Event().wait()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
