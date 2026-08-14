@@ -7,7 +7,7 @@ from utils import ProgressTracker, get_progress_bar, humanbytes
 logger = logging.getLogger(__name__)
 
 def extract_info_sync(url: str):
-    """Extracts deep metadata without downloading to construct format menus."""
+    """Extracts metadata safely in a thread."""
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
@@ -18,7 +18,7 @@ def extract_info_sync(url: str):
         return ydl.extract_info(url, download=False)
 
 async def get_media_info_advanced(url: str) -> dict:
-    """Executes metadata extraction safely in an event loop executor."""
+    """Executes metadata extraction asynchronously."""
     loop = asyncio.get_running_loop()
     try:
         info = await loop.run_in_executor(None, extract_info_sync, url)
@@ -44,7 +44,7 @@ async def get_media_info_advanced(url: str) -> dict:
         return None
 
 def download_sync(url: str, output_dir: str, dl_type: str, quality: str, progress_tracker: ProgressTracker, progress_callback, loop):
-    """Executes synchronous media downloading in a background thread."""
+    """Executes media downloading in a thread pool."""
     os.makedirs(output_dir, exist_ok=True)
     out_template = os.path.join(output_dir, '%(title).100s.%(ext)s')
 
@@ -58,10 +58,10 @@ def download_sync(url: str, output_dir: str, dl_type: str, quality: str, progres
             
             bar = get_progress_bar(downloaded, total)
             text = (
-                f"⚡ "Dᴏᴡɴʟᴏᴀᴅɪɴɢ..."\n\n"
+                f"⚡ Dᴏᴡɴʟᴏᴀᴅɪɴɢ...\n\n"
                 f"{bar}\n"
-                f"💾 "Sɪᴢᴇ:" `{humanbytes(downloaded)} / {humanbytes(total)}`\n"
-                f"🚀 "Sᴘᴇᴇᴅ:" `{humanbytes(speed)}/s`"
+                f"💾 Sɪᴢᴇ: `{humanbytes(downloaded)} / {humanbytes(total)}`\n"
+                f"🚀 Sᴘᴇᴇᴅ: `{humanbytes(speed)}/s`"
             )
             asyncio.run_coroutine_threadsafe(progress_callback(text), loop)
 
