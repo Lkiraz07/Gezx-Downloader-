@@ -7,7 +7,19 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 
 from config import Config
 from database import db
-from force_join import check_force_join
+from utils import ProgressTracker, humanbytes, time_formatter, get_url_hash
+from metadata import get_media_info, apply_custom_metadata
+from downloader import get_media_info_from_url, download_media
+import admin
+import os
+import asyncio
+import logging
+from aiohttp import web
+from pyrogram import Client, filters
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+
+from config import Config
+from database import db
 from utils import ProgressTracker, humanbytes, time_formatter, get_url_hash
 from metadata import get_media_info, apply_custom_metadata
 from downloader import get_media_info_from_url, download_media
@@ -21,42 +33,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Safely extract Telegram API credentials
 API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
 API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ed609e12613d9b2310264e82")
 
-# Initialize Pyrogram Client with workers and clean session
+# Session with in_memory=True and max_retries
 app = Client(
-    "gezx_downloader_bot",
+    "gezx_downloader_bot_session",
     bot_token=Config.BOT_TOKEN,
     api_id=API_ID,
     api_hash=API_HASH,
-    workers=20
+    in_memory=True,
+    workers=8
 )
 
 ACTIVE_DOWNLOADS = {}
 
 
-# GLOBAL CATCH-ALL HANDLER: Catches EVERY SINGLE MESSAGE sent to the bot
-@app.on_message(group=-1)
-async def global_message_handler(client: Client, message: Message):
-    user_id = message.from_user.id if message.from_user else "Unknown"
-    text = message.text or "[Non-text message]"
-    logger.info(f"🚨 [GLOBAL UPDATE] Received message from User ID {user_id}: {text}")
-
-    # Handle /start command explicitly
-    if text.startswith("/start"):
-        await handle_start(client, message)
-    # Handle URLs explicitly
-    elif "http://" in text or "https://" in text:
-        await handle_link(client, message)
-
-
-async def handle_start(client: Client, message: Message):
+@app.on_message(filters.command("start"))
+async def start_handler(client: Client, message: Message):
     user_id = message.from_user.id
-    username = message.from_user.username
-    logger.info(f"Processing /start for user {user_id}")
-    await db.add_user(user_id, username)
+    logger.info(f"📩 RECEIVED COMMAND /start from user {user_id}")
+    await db.add_user(user_id, message.from_user.username)
 
     if await db.is_blocked(user_id):
         return
@@ -75,15 +72,41 @@ async def handle_start(client: Client, message: Message):
         "⚡ *Preserves original audio tracks, subtitles, and video quality.*"
     )
 
-    try:
-        await message.reply_text(text=caption, reply_markup=buttons)
-    except Exception as e:
-        logger.error(f"Error replying to /start: {e}")
+    await message.reply_text(text=caption, reply_markup=buttons)
 
 
-async def handle_link(client: Client, message: Message):
+@app.on_message(filters.command("help"))
+async def help_handler(client: Client, message: Message):
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton(constants.BTN_CLOSE, callback_data="btn_close")]
+    ])
+    caption = (
+        f"{constants.HEADER_HELP}\n\n"
+        "1. Paste a supported link (TeraBox, YouTube, Instagram, etc.).\n"
+        "2. The bot will show file details.\n"
+        "3. Download starts automatically.\n"
+    )
+    await message.reply_text(text=caption, reply_markup=buttons)
+
+
+@app.on_message(filters.command("about"))
+async def about_handler(client: Client, message: Message):
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton(constants.BTN_CLOSE, callback_data="btn_close")]
+    ])
+    caption = (
+        f"{constants.HEADER_ABOUT}\n\n"
+        "🤖 **Bot Name:** Gezx Downloader\n"
+        "📦 **TeraBox Support:** Up to 2 GB\n"
+    )
+    await message.reply_text(text=caption, reply_markup=buttons)
+
+
+@app.on_message(filters.regex(r'https?://[^\s]+'))
+async def link_handler(client: Client, message: Message):
     user_id = message.from_user.id
-    logger.info(f"Processing link from user {user_id}: {message.text}")
+    url = message.text.strip()
+    logger.info(f"📩 RECEIVED LINK from user {user_id}: {url}")
     await db.add_user(user_id, message.from_user.username)
 
     if await db.is_blocked(user_id):
@@ -93,10 +116,8 @@ async def handle_link(client: Client, message: Message):
         await message.reply_text(constants.MSG_ALREADY_IN_QUEUE)
         return
 
-    url = message.text.strip()
     url_hash = get_url_hash(url)
 
-    # Check cache
     cached = await db.get_cached_file(url_hash)
     if cached:
         file_id, file_name, file_size, file_type = cached
@@ -104,13 +125,11 @@ async def handle_link(client: Client, message: Message):
             caption = f"📄 **{file_name}**\n💾 **Sɪᴢᴇ:** {humanbytes(file_size)}\n\n⚡ *Retrieved from cache!*"
             if file_type == "video":
                 await message.reply_video(video=file_id, caption=caption)
-            elif file_type == "audio":
-                await message.reply_audio(audio=file_id, caption=caption)
             else:
                 await message.reply_document(document=file_id, caption=caption)
             return
-        except Exception as e:
-            logger.warning(f"Cache hit failed, downloading fresh: {e}")
+        except Exception:
+            pass
 
     info_msg = await message.reply_text("🔎 **Fetching media information...**")
     web_info = await get_media_info_from_url(url)
@@ -184,35 +203,38 @@ async def handle_link(client: Client, message: Message):
 
         if ext == ".mp4":
             sent_msg = await message.reply_video(video=final_file, caption=caption)
-        elif ext in [".m4a", ".mp3", ".ogg", ".flac"]:
-            sent_msg = await message.reply_audio(audio=final_file, caption=caption)
         else:
             sent_msg = await message.reply_document(document=final_file, caption=caption)
 
         await progress_msg.delete()
 
     except Exception as e:
-        logger.error(f"Error handling link {url}: {e}")
-        await progress_msg.edit_text(f"❌ **An error occurred during processing:**\n`{str(e)}`")
+        logger.error(f"Error handling link: {e}")
+        await progress_msg.edit_text(f"❌ **An error occurred:**\n`{str(e)}`")
 
     finally:
         ACTIVE_DOWNLOADS.pop(user_id, None)
 
 
+@app.on_callback_query()
+async def callback_handler(client: Client, callback_query: CallbackQuery):
+    data = callback_query.data
+    if data == "btn_close":
+        await callback_query.message.delete()
+
+
 async def health_check(request):
-    return web.Response(text="Gezx Downloader Bot is live!")
+    return web.Response(text="Bot web server running ok.")
 
 
 async def main():
     await db.init_db()
     await admin.register_admin_handlers(app)
-    logger.info("Bot starting...")
+    logger.info("Starting Pyrogram client...")
     await app.start()
 
     me = await app.get_me()
-    logger.info("==========================================")
-    logger.info(f"🤖 BOT IS LIVE AS: @{me.username} (ID: {me.id})")
-    logger.info("==========================================")
+    logger.info(f"✅ BOT CONNECTED SUCCESSFULLY: @{me.username} (ID: {me.id})")
 
     server = web.Server(health_check)
     runner = web.ServerRunner(server)
@@ -226,3 +248,115 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+￼Enter constants
+
+# Setup Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
+API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ed609e12613d9b2310264e82")
+
+# Session with in_memory=True and max_retries
+app = Client(
+    "gezx_downloader_bot_session",
+    bot_token=Config.BOT_TOKEN,
+    api_id=API_ID,
+    api_hash=API_HASH,
+    in_memory=True,
+    workers=8
+)
+
+ACTIVE_DOWNLOADS = {}
+
+
+@app.on_message(filters.command("start"))
+async def start_handler(client: Client, message: Message):
+    user_id = message.from_user.id
+    logger.info(f"📩 RECEIVED COMMAND /start from user {user_id}")
+    await db.add_user(user_id, message.from_user.username)
+
+    if await db.is_blocked(user_id):
+        return
+
+    buttons = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📖 Help", callback_data="btn_help"),
+            InlineKeyboardButton("ℹ️ About", callback_data="btn_about")
+        ]
+    ])
+
+    caption = (
+        f"{constants.HEADER_START}\n\n"
+        "Send me any supported media link (including **TeraBox**) and I will download and "
+        "send it to you directly in Telegram!\n\n"
+        "⚡ *Preserves original audio tracks, subtitles, and video quality.*"
+    )
+
+    await message.reply_text(text=caption, reply_markup=buttons)
+
+
+@app.on_message(filters.command("help"))
+async def help_handler(client: Client, message: Message):
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton(constants.BTN_CLOSE, callback_data="btn_close")]
+    ])
+    caption = (
+        f"{constants.HEADER_HELP}\n\n"
+        "1. Paste a supported link (TeraBox, YouTube, Instagram, etc.).\n"
+        "2. The bot will show file details.\n"
+        "3. Download starts automatically.\n"
+    )
+    await message.reply_text(text=caption, reply_markup=buttons)
+
+
+@app.on_message(filters.command("about"))
+async def about_handler(client: Client, message: Message):
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton(constants.BTN_CLOSE, callback_data="btn_close")]
+    ])
+    caption = (
+        f"{constants.HEADER_ABOUT}\n\n"
+        "🤖 **Bot Name:** Gezx Downloader\n"
+        "📦 **TeraBox Support:** Up to 2 GB\n"
+    )
+    await message.reply_text(text=caption, reply_markup=buttons)
+
+
+@app.on_message(filters.regex(r'https?://[^\s]+'))
+async def link_handler(client: Client, message: Message):
+    user_id = message.from_user.id
+    url = message.text.strip()
+    logger.info(f"📩 RECEIVED LINK from user {user_id}: {url}")
+    await db.add_user(user_id, message.from_user.username)
+
+    if await db.is_blocked(user_id):
+        return
+
+    if user_id in ACTIVE_DOWNLOADS:
+        await message.reply_text(constants.MSG_ALREADY_IN_QUEUE)
+        return
+
+    url_hash = get_url_hash(url)
+
+    cached = await db.get_cached_file(url_hash)
+    if cached:
+        file_id, file_name, file_size, file_type = cached
+        try:
+            caption = f"📄 **{file_name}**\n💾 **Sɪᴢᴇ:** {humanbytes(file_size)}\n\n⚡ *Retrieved from cache!*"
+            if file_type == "video":
+                await message.reply_video(video=file_id, caption=caption)
+            else:
+                await message.reply_document(document=file_id, caption=caption)
+            return
+        except Exception:
+            pass
+
+    info_msg = await message.reply_text("🔎 **Fetching media information...**")
+    web_info = await get_media_info_from_url(url)
+
+    info_text = constants.INFO_TEMPLATE.format(
+        filename=web_info.get("title", "Media File"),
