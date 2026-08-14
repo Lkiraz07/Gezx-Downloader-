@@ -22,12 +22,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Pyrogram Client with in_memory=True to ensure fresh session handshake
+# Safely extract Telegram API credentials from Environment Variables
+API_ID = int(os.getenv("TELEGRAM_API_ID", "12345"))
+API_HASH = os.getenv("TELEGRAM_API_HASH", "abcdef1234567890abcdef1234567890")
+
+# Initialize Pyrogram Client
 app = Client(
     "gezx_downloader_session",
     bot_token=Config.BOT_TOKEN,
-    api_id=Config.TELEGRAM_API_ID,
-    api_hash=Config.TELEGRAM_API_HASH,
+    api_id=API_ID,
+    api_hash=API_HASH,
     in_memory=True
 )
 
