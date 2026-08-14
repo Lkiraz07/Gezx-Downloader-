@@ -1,4 +1,4 @@
-import aiosqlite
+hereimport aiosqlite
 from config import Config
 
 class Database:
@@ -118,9 +118,3 @@ class Database:
             await db.commit()
 
 db = Database()
-```eof
-
-We have created `database.py` with asynchronous database helpers for user tracking, file caching, and dynamic admin settings.
-
-Please create `database.py` in your GitHub repository and confirm when done so we can proceed to **Step 4 (`utils.py`)**.
-
