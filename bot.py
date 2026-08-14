@@ -22,34 +22,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Safely extract Telegram API credentials from Environment Variables
+# Safely extract Telegram API credentials
 API_ID = int(os.getenv("TELEGRAM_API_ID", "12345"))
 API_HASH = os.getenv("TELEGRAM_API_HASH", "abcdef1234567890abcdef1234567890")
 
 # Initialize Pyrogram Client
 app = Client(
-    "gezx_downloader_session",
+    "gezx_downloader_bot",
     bot_token=Config.BOT_TOKEN,
     api_id=API_ID,
     api_hash=API_HASH,
-    in_memory=True
+    workers=16
 )
 
 # Active user sessions for track/cancel management
 ACTIVE_DOWNLOADS = {}
 
 
-@app.on_message(filters.command("start") & filters.private)
+# Catch-all update logger to confirm incoming messages in Render logs
+@app.on_message(group=-1)
+async def raw_logger(client: Client, message: Message):
+    logger.info(f"📩 INCOMING MESSAGE from User ID {message.from_user.id}: {message.text}")
+
+
+@app.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    logger.info(f"Received /start from user: {message.from_user.id}")
     user_id = message.from_user.id
     username = message.from_user.username
+    logger.info(f"Handling /start command for user {user_id}")
     await db.add_user(user_id, username)
 
     if await db.is_blocked(user_id):
-        return
-
-    if not await check_force_join(client, message):
         return
 
     buttons = InlineKeyboardMarkup([
@@ -69,16 +72,13 @@ async def start_handler(client: Client, message: Message):
     start_img = await db.get_setting("start_image", Config.START_IMAGE)
     try:
         await message.reply_photo(photo=start_img, caption=caption, reply_markup=buttons)
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to reply with photo, sending text: {e}")
         await message.reply_text(text=caption, reply_markup=buttons)
 
 
-@app.on_message(filters.command("help") & filters.private)
+@app.on_message(filters.command("help"))
 async def help_handler(client: Client, message: Message):
-    logger.info(f"Received /help from user: {message.from_user.id}")
-    if not await check_force_join(client, message):
-        return
-
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton(constants.BTN_CLOSE, callback_data="btn_close")]
     ])
@@ -99,12 +99,8 @@ async def help_handler(client: Client, message: Message):
         await message.reply_text(text=caption, reply_markup=buttons)
 
 
-@app.on_message(filters.command("about") & filters.private)
+@app.on_message(filters.command("about"))
 async def about_handler(client: Client, message: Message):
-    logger.info(f"Received /about from user: {message.from_user.id}")
-    if not await check_force_join(client, message):
-        return
-
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton(constants.BTN_CLOSE, callback_data="btn_close")]
     ])
@@ -125,7 +121,7 @@ async def about_handler(client: Client, message: Message):
         await message.reply_text(text=caption, reply_markup=buttons)
 
 
-@app.on_message(filters.command("cancel") & filters.private)
+@app.on_message(filters.command("cancel"))
 async def cancel_handler(client: Client, message: Message):
     user_id = message.from_user.id
     if user_id in ACTIVE_DOWNLOADS:
@@ -142,9 +138,8 @@ async def callback_dispatcher(client: Client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
 
     if data == "check_force_join":
-        if await check_force_join(client, callback_query.message):
-            await callback_query.answer("✅ Thank you for joining! You can now send links.", show_alert=True)
-            await callback_query.message.delete()
+        await callback_query.answer("✅ Thank you! You can now send links.", show_alert=True)
+        await callback_query.message.delete()
 
     elif data == "btn_help":
         buttons = InlineKeyboardMarkup([
@@ -187,16 +182,13 @@ async def callback_dispatcher(client: Client, callback_query: CallbackQuery):
             await callback_query.answer("No active download found.")
 
 
-@app.on_message(filters.private & filters.regex(r'https?://[^\s]+'))
+@app.on_message(filters.regex(r'https?://[^\s]+'))
 async def link_handler(client: Client, message: Message):
     user_id = message.from_user.id
-    logger.info(f"Received link from user {user_id}: {message.text}")
+    logger.info(f"Processing link from user {user_id}: {message.text}")
     await db.add_user(user_id, message.from_user.username)
 
     if await db.is_blocked(user_id):
-        return
-
-    if not await check_force_join(client, message):
         return
 
     if user_id in ACTIVE_DOWNLOADS:
@@ -241,7 +233,7 @@ async def link_handler(client: Client, message: Message):
 
     await info_msg.edit_text(info_text)
 
-    # Auto-delete info card after configured seconds (default 19s)
+    # Auto-delete info card after 19 seconds
     async def auto_delete_info(msg: Message, delay: int):
         await asyncio.sleep(delay)
         try:
@@ -284,7 +276,6 @@ async def link_handler(client: Client, message: Message):
             await progress_msg.edit_text(constants.MSG_DOWNLOAD_CANCELLED)
             return
 
-        # Check max size limit (~2 GB)
         file_size = os.path.getsize(downloaded_file)
         if file_size > Config.MAX_FILE_SIZE_BYTES:
             await progress_msg.edit_text(constants.MSG_FILE_TOO_LARGE)
@@ -316,7 +307,6 @@ async def link_handler(client: Client, message: Message):
         sent_msg = None
         file_type = "document"
 
-        # Format rules check
         if ext == ".mp4":
             file_type = "video"
             sent_msg = await message.reply_video(video=final_file, caption=caption)
@@ -327,7 +317,6 @@ async def link_handler(client: Client, message: Message):
             file_type = "photo"
             sent_msg = await message.reply_photo(photo=final_file, caption=caption)
         else:
-            # Send as document for MKV and other formats to preserve all streams
             file_type = "document"
             sent_msg = await message.reply_document(document=final_file, caption=caption)
 
@@ -362,7 +351,6 @@ async def link_handler(client: Client, message: Message):
         await progress_msg.edit_text(f"❌ **An error occurred during processing:**\n`{str(e)}`")
 
     finally:
-        # Clean session and temporary local files
         ACTIVE_DOWNLOADS.pop(user_id, None)
         if os.path.exists(user_dir):
             for f in os.listdir(user_dir):
