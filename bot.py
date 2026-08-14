@@ -31,13 +31,13 @@ PENDING_URLS = {}
 ACTIVE_DOWNLOADS = {}
 
 # ==========================================
-# COMMAND HANDLERS (SMALL CAPS + CLEAN TEXT)
+# COMMAND HANDLERS
 # ==========================================
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
     text = (
-        "Dᴏᴡɴʟᴏᴀᴅ IT — Dᴏᴡɴʟᴏᴀᴅ ᴀʟᴍᴏsᴛ ᴀɴʏ ᴍᴇᴅɪᴀ ᴛᴏ ʏᴏᴜʀ ᴍᴏʙɪʟᴇ ᴏʀ ᴄᴏᴍᴘᴜᴛᴇʀ.\n\n"
+        "» Gᴇᴢx Dᴏᴡɴʟᴏᴀᴅᴇʀ « — Dᴏᴡɴʟᴏᴀᴅ ᴀʟᴍᴏsᴛ ᴀɴʏ ᴍᴇᴅɪᴀ ᴛᴏ ʏᴏᴜʀ ᴍᴏʙɪʟᴇ ᴏʀ ᴄᴏᴍᴘᴜᴛᴇʀ.\n\n"
         "🔒 Dᴏᴡɴʟᴏᴀᴅ ʀᴇsᴛʀɪᴄᴛᴇᴅ ᴍᴇᴅɪᴀ sᴀᴠᴇᴅ ᴛᴏ Tᴇʟᴇɢʀᴀᴍ\n"
         "⚡ Iɴsᴛᴀɴᴛ ᴅᴇʟɪᴠᴇʀʏ ғʀᴏᴍ ᴏᴜʀ ᴄᴀᴄʜᴇ\n"
         "🗃 Sᴛᴏʀᴀɢᴇ ᴏғ sᴀᴠᴇᴅ ᴀɴᴅ ᴜᴘʟᴏᴀᴅᴇᴅ ғɪʟᴇs\n"
@@ -45,9 +45,9 @@ async def start_cmd(client: Client, message: Message):
         "⏲ Pᴀʀᴛɪᴀʟ ᴅᴏᴡɴʟᴏᴀᴅ sᴜᴘᴘᴏʀᴛ\n"
         "👥 Wᴏʀᴋs ɪɴ ɢʀᴏᴜᴘs ᴀɴᴅ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛs\n\n"
         "📌 Hᴏᴡ ᴛᴏ Usᴇ:\n"
-        "— Sᴇɴᴅ ᴀ ʟɪɴᴋ ᴛᴏ ᴀɴʏ sᴜᴘᴘᴏʀᴛᴇᴅ sᴇʀᴠɪᴄᴇ\n"
-        "— Cʜᴏᴏsᴇ ғᴏʀᴍᴀᴛ ᴀɴᴅ qᴜᴀʟɪᴛʏ\n"
-        "— Gᴇᴛ ʏᴏᴜʀ ғɪʟᴇ ɪɴ sᴇᴄᴏɴᴅs!"
+        "› Sᴇɴᴅ ᴀ ʟɪɴᴋ ᴛᴏ ᴀɴʏ sᴜᴘᴘᴏʀᴛᴇᴅ sᴇʀᴠɪᴄᴇ\n"
+        "› Cʜᴏᴏsᴇ ғᴏʀᴍᴀᴛ ᴀɴᴅ qᴜᴀʟɪᴛʏ\n"
+        "› Gᴇᴛ ʏᴏᴜʀ ғɪʟᴇ ɪɴ sᴇᴄᴏɴᴅs!"
     )
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton("⚙️ Sᴇᴛᴛɪɴɢs", callback_data="btn_settings"), InlineKeyboardButton("🔍 Iɴʟɪɴᴇ sᴇᴀʀᴄʜ", switch_inline_query="")],
@@ -119,7 +119,7 @@ async def link_handler(client: Client, message: Message):
         ui_text += f"{count}. mp4, {r}p {icon}\n"
         count += 1
 
-    ui_text += f"\n🎧 Aᴜᴅɪᴏ\n"
+    ui_text += "\n🎧 Aᴜᴅɪᴏ\n"
     ui_text += f"{count}. m4a, 128kbps, 44kHz\n"
     ui_text += f"{count+1}. m4a, 64kbps, 22kHz\n\n"
     ui_text += "🛡 Fᴏʀᴍᴀᴛs 2160ᴘ, 1440ᴘ ɴᴏᴛ ᴄᴏᴍᴘᴀᴛɪʙʟᴇ ᴡɪᴛʜ Apple iPhone\n"
