@@ -1,27 +1,33 @@
 import os
+import sys
 import asyncio
 import logging
 from aiohttp import web
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.errors import FloodWait
 
 from config import Config
 from database import db
-from force_join import check_force_join
 from utils import ProgressTracker, humanbytes, time_formatter, get_url_hash
 from metadata import get_media_info, apply_custom_metadata
 from downloader import get_media_info_from_url, download_media
 import admin
 import constants
 
-# Logging configuration
+# Setup Logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Pyrogram client with in_memory=True to eliminate session file locks
+# Validate credentials prior to client creation
+if not Config.BOT_TOKEN:
+    logger.critical("❌ FATAL: BOT_TOKEN is missing or empty! Please set BOT_TOKEN in Render environment variables.")
+    sys.exit(1)
+
+# Initialize Pyrogram client in memory
 app = Client(
     "gezx_downloader_bot_session",
     bot_token=Config.BOT_TOKEN,
@@ -69,7 +75,7 @@ async def help_handler(client: Client, message: Message):
         f"{constants.HEADER_HELP}\n\n"
         "1. Paste a supported link (TeraBox, YouTube, Instagram, etc.).\n"
         "2. The bot will fetch file details.\n"
-        "3. Download starts automatically.\n"
+        "3. Download starts automatically with progress status.\n"
     )
     await message.reply_text(text=caption, reply_markup=buttons)
 
@@ -113,8 +119,8 @@ async def link_handler(client: Client, message: Message):
             else:
                 await message.reply_document(document=file_id, caption=caption)
             return
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Cache delivery failed, downloading fresh: {e}")
 
     info_msg = await message.reply_text("🔎 **Fetching media information...**")
     web_info = await get_media_info_from_url(url)
@@ -212,14 +218,12 @@ async def health_check(request):
     return web.Response(text="Bot web server running ok.")
 
 
-from pyrogram.errors import FloodWait
-
 async def main():
     await db.init_db()
     await admin.register_admin_handlers(app)
     logger.info("Starting Pyrogram client...")
     
-    # Catch FloodWait so the application doesn't exit with status 1
+    # Handle FloodWait error automatically
     while True:
         try:
             await app.start()
@@ -236,7 +240,7 @@ async def main():
     logger.info(f"✅ BOT CONNECTED SUCCESSFULLY: @{me.username} (ID: {me.id})")
     logger.info("==========================================")
 
-    # Web server startup
+    # Web server startup to satisfy Render web service health check
     server = web.Server(health_check)
     runner = web.ServerRunner(server)
     await runner.setup()
@@ -246,3 +250,7 @@ async def main():
     logger.info(f"Health-check HTTP server listening on port {port}")
 
     await asyncio.Event().wait()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
