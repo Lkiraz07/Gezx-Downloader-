@@ -22,12 +22,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Pyrogram Client
+# Initialize Pyrogram Client with in_memory=True to ensure fresh session handshake
 app = Client(
-    "gezx_downloader_bot",
+    "gezx_downloader_session",
     bot_token=Config.BOT_TOKEN,
-    api_id=int(os.getenv("TELEGRAM_API_ID", "12345")),
-    api_hash=os.getenv("TELEGRAM_API_HASH", "abcdef1234567890abcdef1234567890")
+    api_id=Config.TELEGRAM_API_ID,
+    api_hash=Config.TELEGRAM_API_HASH,
+    in_memory=True
 )
 
 # Active user sessions for track/cancel management
@@ -36,6 +37,7 @@ ACTIVE_DOWNLOADS = {}
 
 @app.on_message(filters.command("start") & filters.private)
 async def start_handler(client: Client, message: Message):
+    logger.info(f"Received /start from user: {message.from_user.id}")
     user_id = message.from_user.id
     username = message.from_user.username
     await db.add_user(user_id, username)
@@ -69,6 +71,7 @@ async def start_handler(client: Client, message: Message):
 
 @app.on_message(filters.command("help") & filters.private)
 async def help_handler(client: Client, message: Message):
+    logger.info(f"Received /help from user: {message.from_user.id}")
     if not await check_force_join(client, message):
         return
 
@@ -94,6 +97,7 @@ async def help_handler(client: Client, message: Message):
 
 @app.on_message(filters.command("about") & filters.private)
 async def about_handler(client: Client, message: Message):
+    logger.info(f"Received /about from user: {message.from_user.id}")
     if not await check_force_join(client, message):
         return
 
@@ -182,6 +186,7 @@ async def callback_dispatcher(client: Client, callback_query: CallbackQuery):
 @app.on_message(filters.private & filters.regex(r'https?://[^\s]+'))
 async def link_handler(client: Client, message: Message):
     user_id = message.from_user.id
+    logger.info(f"Received link from user {user_id}: {message.text}")
     await db.add_user(user_id, message.from_user.username)
 
     if await db.is_blocked(user_id):
