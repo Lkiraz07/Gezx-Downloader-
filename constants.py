@@ -1,56 +1,35 @@
-# UI Constants and Text Templates for Gezx Downloader
+HEADER_START = "✨ **Welcome to Gezx Downloader Bot!**"
+HEADER_HELP = "📖 **How to Use Gezx Downloader**"
+HEADER_ABOUT = "ℹ️ **About Gezx Downloader Bot**"
 
-# UI Emojis & Headers
-HEADER_START = "👋 **Wᴇʟᴄᴏᴍᴇ ᴛᴏ Gᴇᴢx Dᴏᴡɴʟᴏᴀᴅᴇʀ!**"
-HEADER_HELP = "📖 **Gᴇᴢx Dᴏᴡɴʟᴏᴀᴅᴇʀ - Hᴇʟᴘ Gᴜɪᴅᴇ**"
-HEADER_ABOUT = "ℹ️ **Aʙᴏᴜᴛ Gᴇᴢx Dᴏᴡɴʟᴏᴀᴅᴇʀ**"
+BTN_BACK = "🔙 Back"
+BTN_CLOSE = "❌ Close"
 
-# Download & Progress Text Constants
-TEXT_DOWNLOAD_STARTING = "⏳ Dᴏᴡɴʟᴏᴀᴅ sᴛᴀʀᴛɪɴɢ..."
-TEXT_DOWNLOADING_HEADER = "⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ..."
-TEXT_UPLOADING_HEADER = "⚡Uᴘʟᴏᴀᴅɪɴɢ..."
+MSG_DOWNLOAD_CANCELLED = "🛑 **Download process has been cancelled.**"
+MSG_ALREADY_IN_QUEUE = "⚠️ **You already have an active download in progress!** Please wait or cancel it using `/cancel`."
+MSG_FILE_TOO_LARGE = "❌ **File exceeds Telegram's 2 GB limit!**"
 
-PROGRESS_TEMPLATE = """{header}
+TEXT_DOWNLOAD_STARTING = "⏳ **Initializing download session...**"
 
-[{bar}]
+INFO_TEMPLATE = (
+    "📋 **Media Summary Details**\n\n"
+    "📄 **Name:** `{filename}`\n"
+    "💾 **Size:** {size}\n"
+    "⏱ **Duration:** {duration}\n"
+    "📐 **Resolution:** {quality}\n"
+    "🎞 **Format:** {format}\n"
+    "🎥 **Codec:** {video_codec}\n"
+    "🔊 **Audio Tracks:** {audio_tracks}\n"
+    "💬 **Subtitles:** {subtitle_tracks}"
+)
 
-Sɪᴢᴇ : {current} | {total}
-Dᴏɴᴇ : {percentage:.2f}%
-Sᴘᴇᴇᴅ : {speed}
-ETA : {eta}"""
+DEFAULT_CAPTION_TEMPLATE = (
+    "📄 **{filename}**\n"
+    "💾 **Size:** {filesize}\n"
+    "⏱ **Duration:** {duration}\n"
+    "📐 **Quality:** {quality}\n"
+    "📦 **Format:** {format}\n"
+    "🌐 **Source:** {source}\n\n"
+    "⚡ *Downloaded by {bot}*"
+)
 
-INFO_TEMPLATE = """🎥 **Vɪᴅᴇᴏ Iɴғᴏʀᴍᴀᴛɪᴏɴ**
-
-**Nᴀᴍᴇ:** {filename}
-**Sɪᴢᴇ:** {size}
-**Dᴜʀᴀᴛɪᴏɴ:** {duration}
-**Qᴜᴀʟɪᴛʏ:** {quality}
-**Fᴏʀᴍᴀᴛ:** {format}
-**Vɪᴅᴇᴏ:** {video_codec}
-**Aᴜᴅɪᴏ:** {audio_tracks}
-**Sᴜʙᴛɪᴛʟᴇs:** {subtitle_tracks}"""
-
-DEFAULT_CAPTION_TEMPLATE = """📄 **{filename}**
-💾 **Sɪᴢᴇ:** {filesize} | ⏱ **Dᴜʀᴀᴛɪᴏɴ:** {duration}
-🎬 **Qᴜᴀʟɪᴛʏ:** {quality} ({format})
-📢 **Sᴏᴜʀᴄᴇ:** {source}
-
-🤖 **Bʏ:** {bot}"""
-
-FORCE_JOIN_TEXT = """⚠️ **Aᴄᴄᴇss Dᴇɴɪᴇᴅ!**
-
-Yᴏᴜ ᴍᴜsᴛ ᴊᴏɪɴ ᴏᴜʀ Cʜᴀɴɴᴇʟ ᴛᴏ ᴜsᴇ ᴛʜɪs ʙᴏᴛ. 
-Pʟᴇᴀsᴇ ᴊᴏɪɴ dynamic updates and try again!"""
-
-# System Messages
-MSG_URL_UNSUPPORTED = "❌ Unsupported URL or source platform not recognized."
-MSG_FILE_TOO_LARGE = "❌ File size exceeds Telegram limits (~2 GB max)."
-MSG_DOWNLOAD_CANCELLED = "🛑 Download cancelled successfully."
-MSG_ALREADY_IN_QUEUE = "⏳ You already have an active or queued download."
-
-# Button Text Labels
-BTN_CANCEL = "Cancel"
-BTN_BACK = "« Back"
-BTN_CLOSE = "✖ Close"
-BTN_JOIN_CHANNEL = "📢 Join Channel"
-BTN_REFRESH_JOIN = "🔄 Check Again"
