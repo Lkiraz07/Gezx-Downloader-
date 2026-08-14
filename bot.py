@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 if not Config.BOT_TOKEN:
-    logger.critical("❌ FATAL: BOT_TOKEN is missing!")
+    logger.critical("FATAL: BOT_TOKEN is missing!")
     sys.exit(1)
 
 app = Client(
@@ -31,18 +31,18 @@ PENDING_URLS = {}
 ACTIVE_DOWNLOADS = {}
 
 # ==========================================
-# COMMAND HANDLERS (SMALL CAPS + PHOTO HEADERS)
+# COMMAND HANDLERS (SMALL CAPS + CLEAN TEXT)
 # ==========================================
 
 @app.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
     text = (
-        "Gᴇᴢx Dᴏᴡɴʟᴏᴀᴅᴇʀ — Dᴏᴡɴʟᴏᴀᴅ ᴀʟᴍᴏsᴛ ᴀɴʏ ᴍᴇᴅɪᴀ ᴛᴏ ʏᴏᴜʀ ᴍᴏʙɪʟᴇ ᴏʀ ᴄᴏᴍᴘᴜᴛᴇʀ.\n\n"
+        "Dᴏᴡɴʟᴏᴀᴅ IT — Dᴏᴡɴʟᴏᴀᴅ ᴀʟᴍᴏsᴛ ᴀɴʏ ᴍᴇᴅɪᴀ ᴛᴏ ʏᴏᴜʀ ᴍᴏʙɪʟᴇ ᴏʀ ᴄᴏᴍᴘᴜᴛᴇʀ.\n\n"
         "🔒 Dᴏᴡɴʟᴏᴀᴅ ʀᴇsᴛʀɪᴄᴛᴇᴅ ᴍᴇᴅɪᴀ sᴀᴠᴇᴅ ᴛᴏ Tᴇʟᴇɢʀᴀᴍ\n"
         "⚡ Iɴsᴛᴀɴᴛ ᴅᴇʟɪᴠᴇʀʏ ғʀᴏᴍ ᴏᴜʀ ᴄᴀᴄʜᴇ\n"
         "🗃 Sᴛᴏʀᴀɢᴇ ᴏғ sᴀᴠᴇᴅ ᴀɴᴅ ᴜᴘʟᴏᴀᴅᴇᴅ ғɪʟᴇs\n"
         "🔀 Aᴜᴅɪᴏ ᴇxᴛʀᴀᴄᴛɪᴏɴ ᴀɴᴅ ᴄᴏɴᴠᴇʀsɪᴏɴ (ᴍᴘ3, ᴍ4ᴀ)\n"
-        "⏲ Pᴀʀᴛɪᴀʟ ᴅᴏᴡɴʟᴏᴀᴅ Support\n"
+        "⏲ Pᴀʀᴛɪᴀʟ ᴅᴏᴡɴʟᴏᴀᴅ sᴜᴘᴘᴏʀᴛ\n"
         "👥 Wᴏʀᴋs ɪɴ ɢʀᴏᴜᴘs ᴀɴᴅ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛs\n\n"
         "📌 Hᴏᴡ ᴛᴏ Usᴇ:\n"
         "— Sᴇɴᴅ ᴀ ʟɪɴᴋ ᴛᴏ ᴀɴʏ sᴜᴘᴘᴏʀᴛᴇᴅ sᴇʀᴠɪᴄᴇ\n"
@@ -57,7 +57,7 @@ async def start_cmd(client: Client, message: Message):
     try:
         await message.reply_photo(photo=Config.START_PHOTO, caption=text, reply_markup=buttons)
     except Exception as e:
-        logger.warning(f"Failed to send start photo, falling back to text: {e}")
+        logger.warning(f"Failed to send photo header: {e}")
         await message.reply_text(text, reply_markup=buttons, disable_web_page_preview=True)
 
 
@@ -81,11 +81,11 @@ async def help_cmd(client: Client, message: Message):
 @app.on_message(filters.command("about"))
 async def about_cmd(client: Client, message: Message):
     text = (
-        "ℹ️ Gᴇᴢx Dᴏᴡɴʟᴏᴀᴅᴇʀ Eɴɢɪɴᴇ\n\n"
+        "ℹ️ Gᴇzx Dᴏᴡɴʟᴏᴀᴅᴇʀ Eɴɢɪɴᴇ\n\n"
         "⚡ Vᴇʀsɪᴏɴ: 4.0 Mᴀx Uʟᴛʀᴀ\n"
         "📦 Fʀᴀᴍᴇᴡᴏʀᴋ: Pʏᴛʜᴏɴ Asʏɴᴄ + Pʏʀᴏɢʀᴀᴍ + Yᴛ-Dʟᴘ\n"
         "🚀 Mᴀx Fɪʟᴇ Sɪᴢᴇ: Uᴘ ᴛᴏ 2.0 GB ᴘᴇʀ ғɪʟᴇ\n"
-        "🛡 Sᴇᴄᴜʀɪᴛʏ: Direct telegram transport without link tracking"
+        "🛡 Sᴇᴄᴜʀɪᴛʏ: Dɪʀᴇᴄᴛ Tᴇʟᴇɢʀᴀᴍ ᴛʀᴀɴsᴘᴏʀᴛ ᴡɪᴛʜᴏᴜᴛ ʟɪɴᴋ ᴛʀᴀᴄᴋɪɴɢ"
     )
     buttons = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Bᴀᴄᴋ", callback_data="btn_back")]])
     
@@ -110,22 +110,20 @@ async def link_handler(client: Client, message: Message):
 
     PENDING_URLS[message.from_user.id] = {"url": url, "info": info}
 
-    # Format List Header (Matching reference 1000814362.jpg)
-    ui_text = "🎥 "Vɪᴅᴇᴏ'\n"
+    ui_text = "🎥 Vɪᴅᴇᴏ\n"
     res_list = [2160, 1440, 1080, 720, 480, 360, 240, 144]
     
     count = 1
     for r in res_list:
         icon = "⭐" if r >= 1440 else "⚡"
-        ui_text += f"{count}. _ᴍᴘ4, {r}ᴘ_ {icon}\n"
+        ui_text += f"{count}. mp4, {r}p {icon}\n"
         count += 1
 
-    ui_text += f"\n🎧 "Aᴜᴅɪᴏ"\n"
-    ui_text += f"{count}. _ᴍ4ᴀ, 128ᴋʙᴘs, 44ᴋHᴢ_\n"
-    ui_text += f"{count+1}. _ᴍ4ᴀ, 64ᴋʙᴘs, 22ᴋHᴢ_\n\n"
-    ui_text += "🛡 _Fᴏʀᴍᴀᴛs 2160ᴘ, 1440ᴘ ɴᴏᴛ ᴄᴏᴍᴘᴀᴛɪʙʟᴇ ᴡɪᴛʜ Apple iPhone_\n"
+    ui_text += f"\n🎧 Aᴜᴅɪᴏ\n"
+    ui_text += f"{count}. m4a, 128kbps, 44kHz\n"
+    ui_text += f"{count+1}. m4a, 64kbps, 22kHz\n\n"
+    ui_text += "🛡 Fᴏʀᴍᴀᴛs 2160ᴘ, 1440ᴘ ɴᴏᴛ ᴄᴏᴍᴘᴀᴛɪʙʟᴇ ᴡɪᴛʜ Apple iPhone\n"
 
-    # Dynamic Transparent-Style Quality Grid Buttons
     keyboard = [
         [
             InlineKeyboardButton("🎥 2160ᴘ", callback_data="dl_v_2160"),
@@ -182,8 +180,9 @@ async def callback_router(client: Client, query: CallbackQuery):
 
     if data == "dl_cap":
         cap_text = info.get("description", "Nᴏ ᴄᴀᴘᴛɪᴏɴ ғᴏᴜɴᴅ.")
-        if len(cap_text) > 4000: cap_text = cap_text[:4000] + "..."
-        await query.message.reply_text(f"📝 "Cᴀᴘᴛɪᴏɴ:"\n\n{cap_text}")
+        if len(cap_text) > 4000:
+            cap_text = cap_text[:4000] + "..."
+        await query.message.reply_text(f"📝 Cᴀᴘᴛɪᴏɴ:\n\n{cap_text}")
         await query.answer()
         return
 
@@ -210,25 +209,28 @@ async def callback_router(client: Client, query: CallbackQuery):
         now = asyncio.get_event_loop().time()
         if now - last_update[0] > 3.0:
             last_update[0] = now
-            try: await query.message.edit_text(text)
-            except: pass
+            try:
+                await query.message.edit_text(text)
+            except Exception:
+                pass
 
     try:
         file_path = await download_media_advanced(url, user_dir, dl_type, quality, tracker, update_ui)
         
         if dl_type == "video":
             await query.message.edit_text("🚀 Uᴘʟᴏᴀᴅɪɴɢ Vɪᴅᴇᴏ...")
-            await query.message.reply_video(video=file_path, caption=f"📹 Vɪᴅᴇᴏ: {quality}ᴘ")
+            await query.message.reply_video(video=file_path, caption=f"📹 Vɪᴅᴇᴏ: {quality}p")
         elif dl_type == "audio":
             await query.message.edit_text("🚀 Uᴘʟᴏᴀᴅɪɴɢ Aᴜᴅɪᴏ...")
             audio_path = file_path.rsplit(".", 1)[0] + (".mp3" if quality == "128" else ".m4a")
-            if not os.path.exists(audio_path): audio_path = file_path
-            await query.message.reply_audio(audio=audio_path, caption=f"🎵 "Aᴜᴅɪᴏ:" {quality}ᴋʙᴘs")
+            if not os.path.exists(audio_path):
+                audio_path = file_path
+            await query.message.reply_audio(audio=audio_path, caption=f"🎵 Aᴜᴅɪᴏ: {quality}kbps")
         elif dl_type == "subtitle":
-            await query.message.edit_text("🚀 "Uᴘʟᴏᴀᴅɪɴɢ Sᴜʙᴛɪᴛʟᴇs..."")
+            await query.message.edit_text("🚀 Uᴘʟᴏᴀᴅɪɴɢ Sᴜʙᴛɪᴛʟᴇs...")
             for file in os.listdir(user_dir):
                 if file.endswith(".vtt") or file.endswith(".srt"):
-                    await query.message.reply_document(document=os.path.join(user_dir, file), caption="💬 "Sᴜʙᴛɪᴛʟᴇs"")
+                    await query.message.reply_document(document=os.path.join(user_dir, file), caption="💬 Sᴜʙᴛɪᴛʟᴇs")
                     break
 
         await query.message.delete()
