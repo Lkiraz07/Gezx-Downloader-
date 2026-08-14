@@ -1,81 +1,33 @@
-import time
-import math
 import hashlib
-
-def humanbytes(size: int) -> str:
-    """Format bytes into a human-readable string."""
-    if not size:
-        return "0 B"
-    power = 2**10
-    n = 0
-    power_labels = {0: 'B', 1: 'KB', 2: 'MB', 3: 'GB', 4: 'TB'}
-    while size > power and n < 4:
-        size /= power
-        n += 1
-    return f"{size:.2f} {power_labels[n]}"
-
-
-def time_formatter(seconds: float) -> str:
-    """Format seconds into readable time string like 1 min, 16 sec or 02:15:30."""
-    if seconds is None or math.isnan(seconds) or seconds < 0:
-        return "00:00"
-    
-    seconds = int(seconds)
-    minutes, secs = divmod(seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-    
-    if hours > 0:
-        return f"{hours}h, {minutes}m, {secs}s"
-    elif minutes > 0:
-        return f"{minutes} min, {secs} sec"
-    else:
-        return f"{secs} sec"
-
-
-def get_url_hash(url: str) -> str:
-    """Generate SHA256 hash string for caching standard URLs."""
-    return hashlib.sha256(url.strip().encode('utf-8')).hexdigest()
-
-
-def get_progress_bar(percentage: float, length: int = 18) -> str:
-    """Construct progress bar matching requested style [■■■■□□□□□□□□□□□□□□]."""
-    filled_length = int(round(length * percentage / 100))
-    bar = '■' * filled_length + '□' * (length - filled_length)
-    return bar
-
+import time
 
 class ProgressTracker:
-    """Helper class to track speed, ETA, and prevent Telegram edit rate limits."""
-    
-    def __init__(self, edit_interval: float = 2.5):
-        self.start_time = time.time()
-        self.last_edit_time = 0
-        self.edit_interval = edit_interval
+    def __init__(self):
         self.cancelled = False
+        self.start_time = time.time()
+        self.last_update_time = 0
 
-    def should_edit(self) -> bool:
-        """Check if enough time has passed to send a progress update to Telegram."""
-        now = time.time()
-        if now - self.last_edit_time >= self.edit_interval:
-            self.last_edit_time = now
-            return True
-        return False
+def humanbytes(size: int) -> str:
+    if not size:
+        return "0 B"
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size < 1024.0:
+            return f"{size:.2f} {unit}"
+        size /= 1024.0
+    return f"{size:.2f} PB"
 
-    def get_stats(self, current: int, total: int):
-        """Calculate download statistics."""
-        now = time.time()
-        elapsed = now - self.start_time
-        
-        percentage = (current / total * 100) if total > 0 else 0
-        speed_bytes = (current / elapsed) if elapsed > 0 else 0
-        
-        remaining_bytes = total - current
-        eta_seconds = (remaining_bytes / speed_bytes) if speed_bytes > 0 else 0
-        
-        return {
-            "percentage": percentage,
-            "speed": f"{humanbytes(speed_bytes)}/s",
-            "eta": time_formatter(eta_seconds) if eta_seconds > 0 else "0 sec",
-            "current_str": humanbytes(current),
-            "total_str": humanbytes(total)
-      }
+def time_formatter(seconds: int) -> str:
+    if not seconds:
+        return "00:00"
+    m, s = divmod(int(seconds), 60)
+    h, m = divmod(m, 60)
+    return f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+def get_progress_bar(current: int, total: int) -> str:
+    percentage = (current / total) * 100 if total else 0
+    filled = int(percentage // 10)
+    bar = "█" * filled + "░" * (10 - filled)
+    return f"[{bar}] {percentage:.1f}%"
+
+def get_url_hash(url: str) -> str:
+    return hashlib.md5(url.strip().encode('utf-8')).hexdigest()
