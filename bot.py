@@ -39,10 +39,11 @@ app = Client(
 ACTIVE_DOWNLOADS = {}
 
 
-# Catch-all update logger to confirm incoming messages in Render logs
+# Catch-all update logger to log EVERY incoming message into Render logs
 @app.on_message(group=-1)
 async def raw_logger(client: Client, message: Message):
-    logger.info(f"📩 INCOMING MESSAGE from User ID {message.from_user.id}: {message.text}")
+    sender_id = message.from_user.id if message.from_user else "Unknown"
+    logger.info(f"📩 INCOMING MESSAGE from User ID {sender_id}: {message.text}")
 
 
 @app.on_message(filters.command("start"))
@@ -315,28 +316,28 @@ async def link_handler(client: Client, message: Message):
             sent_msg = await message.reply_audio(audio=final_file, caption=caption)
         elif ext in [".jpg", ".jpeg", ".png", ".webp"]:
             file_type = "photo"
-            sent_msg = await message.reply_photo(photo=final_file, caption=caption)
+            sent_msg = await message.reply_photo(photo=file_id if 'file_id' in locals() else final_file, caption=caption)
         else:
             file_type = "document"
             sent_msg = await message.reply_document(document=final_file, caption=caption)
 
         # 8. Cache uploaded file_id
         if sent_msg:
-            file_id = None
+            uploaded_file_id = None
             if sent_msg.video:
-                file_id = sent_msg.video.file_id
+                uploaded_file_id = sent_msg.video.file_id
             elif sent_msg.audio:
-                file_id = sent_msg.audio.file_id
+                uploaded_file_id = sent_msg.audio.file_id
             elif sent_msg.photo:
-                file_id = sent_msg.photo[-1].file_id
+                uploaded_file_id = sent_msg.photo[-1].file_id
             elif sent_msg.document:
-                file_id = sent_msg.document.file_id
+                uploaded_file_id = sent_msg.document.file_id
 
-            if file_id:
+            if uploaded_file_id:
                 await db.set_cached_file(
                     url_hash=url_hash,
                     original_url=url,
-                    file_id=file_id,
+                    file_id=uploaded_file_id,
                     file_name=file_name,
                     file_size=file_size,
                     file_type=file_type
@@ -370,7 +371,12 @@ async def main():
     await admin.register_admin_handlers(app)
     logger.info("Bot starting...")
     await app.start()
-    logger.info("Gezx Downloader Bot is running!")
+
+    # Print exact bot username and ID directly into Render logs
+    me = await app.get_me()
+    logger.info("==========================================")
+    logger.info(f"🤖 BOT IS LIVE AS: @{me.username} (ID: {me.id})")
+    logger.info("==========================================")
 
     # Start a lightweight web server on the port Render expects
     server = web.Server(health_check)
