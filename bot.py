@@ -2,6 +2,7 @@ import os
 import asyncio
 import logging
 import time
+from aiohttp import web
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
@@ -362,12 +363,27 @@ async def link_handler(client: Client, message: Message):
                     pass
 
 
+async def health_check(request):
+    """Simple HTTP response to satisfy Render's port check."""
+    return web.Response(text="Gezx Downloader Bot is live and running!")
+
+
 async def main():
     await db.init_db()
     await admin.register_admin_handlers(app)
     logger.info("Bot starting...")
     await app.start()
     logger.info("Gezx Downloader Bot is running!")
+
+    # Start a lightweight web server on the port Render expects
+    server = web.Server(health_check)
+    runner = web.ServerRunner(server)
+    await runner.setup()
+    port = int(os.getenv("PORT", "8080"))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    logger.info(f"Health-check web server bound to port {port}")
+
     await asyncio.Event().wait()
 
 
