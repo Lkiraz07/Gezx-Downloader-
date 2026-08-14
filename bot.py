@@ -30,10 +30,6 @@ app = Client(
 PENDING_URLS = {}
 ACTIVE_DOWNLOADS = {}
 
-# ==========================================
-# UI TEXT & KEYBOARDS
-# ==========================================
-
 START_TEXT = (
     "Dᴏᴡɴʟᴏᴀᴅ IT — Dᴏᴡɴʟᴏᴀᴅ ᴀʟᴍᴏsᴛ ᴀɴʏ ᴍᴇᴅɪᴀ ᴛᴏ ʏᴏᴜʀ ᴍᴏʙɪʟᴇ ᴏʀ ᴄᴏᴍᴘᴜᴛᴇʀ.\n\n"
     "🔒 Dᴏᴡɴʟᴏᴀᴅ ʀᴇsᴛʀɪᴄᴛᴇᴅ ᴍᴇᴅɪᴀ sᴀᴠᴇᴅ ᴛᴏ Tᴇʟᴇɢʀᴀᴍ\n"
@@ -71,10 +67,6 @@ START_BUTTONS = InlineKeyboardMarkup([
 
 BACK_BUTTON = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Bᴀᴄᴋ", callback_data="btn_back")]])
 
-# ==========================================
-# COMMAND HANDLERS
-# ==========================================
-
 @app.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
     try:
@@ -83,7 +75,6 @@ async def start_cmd(client: Client, message: Message):
         logger.warning(f"Failed to send photo: {e}")
         await message.reply_text(START_TEXT, reply_markup=START_BUTTONS, disable_web_page_preview=True)
 
-
 @app.on_message(filters.command("help"))
 async def help_cmd(client: Client, message: Message):
     try:
@@ -91,17 +82,12 @@ async def help_cmd(client: Client, message: Message):
     except Exception:
         await message.reply_text(HELP_TEXT, reply_markup=BACK_BUTTON)
 
-
 @app.on_message(filters.command("about"))
 async def about_cmd(client: Client, message: Message):
     try:
         await message.reply_photo(photo=Config.ABOUT_PHOTO, caption=ABOUT_TEXT, reply_markup=BACK_BUTTON)
     except Exception:
         await message.reply_text(ABOUT_TEXT, reply_markup=BACK_BUTTON)
-
-# ==========================================
-# LINK PROCESSOR & UI GENERATOR
-# ==========================================
 
 @app.on_message(filters.regex(r'https?://[^\s]+'))
 async def link_handler(client: Client, message: Message):
@@ -155,17 +141,13 @@ async def link_handler(client: Client, message: Message):
 
     await status_msg.edit_text(ui_text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ==========================================
-# CALLBACK ROUTER & DOWNLOAD ENGINE
-# ==========================================
-
 @app.on_callback_query()
 async def callback_router(client: Client, query: CallbackQuery):
     await query.answer()
     data = query.data
     user_id = query.from_user.id
 
-    if data in ["btn_close"]:
+    if data == "btn_close":
         await query.message.delete()
         return
 
@@ -191,7 +173,7 @@ async def callback_router(client: Client, query: CallbackQuery):
         return
 
     if data == "btn_settings":
-        await query.answer("⚙️ Settings menu feature coming in next update!", show_alert=True)
+        await query.answer("⚙️ Settings menu feature coming soon!", show_alert=True)
         return
 
     if user_id not in PENDING_URLS:
@@ -264,10 +246,6 @@ async def callback_router(client: Client, query: CallbackQuery):
         ACTIVE_DOWNLOADS.pop(user_id, None)
         if os.path.exists(user_dir):
             shutil.rmtree(user_dir, ignore_errors=True)
-
-# ==========================================
-# RENDER SERVER STARTUP
-# ==========================================
 
 async def health_check(request):
     return web.Response(text="Bot is running!")
