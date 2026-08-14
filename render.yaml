@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web
     name: gezx-downloader-bot
     env: docker
     plan: free
@@ -7,11 +7,13 @@ services:
     envVars:
       - key: BOT_TOKEN
         sync: false
-      - key: ADMIN_ID
-        value: "5565826679"
       - key: TELEGRAM_API_ID
         sync: false
       - key: TELEGRAM_API_HASH
         sync: false
-      - key: TERABOX_COOKIE
+      - key: ADMIN_IDS
         sync: false
+      - key: FORCE_JOIN_CHANNEL
+        sync: false
+      - key: PORT
+        value: 8080
